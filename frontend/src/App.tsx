@@ -25,6 +25,12 @@ function App() {
     description: "",
     priority: "medium",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<FormData>({
+    title: "",
+    description: "",
+    priority: "medium",
+  });
 
   useEffect(() => {
     fetchData();
@@ -52,6 +58,18 @@ function App() {
     }));
   };
 
+  const handleEditInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
       alert("Please enter a title");
@@ -70,6 +88,44 @@ function App() {
       const data = await response.json();
       setTodoList(data?.todos || []);
       setFormData({ title: "", description: "", priority: "medium" });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleStartEdit = (todo: Todo) => {
+    setEditingId(todo.id);
+    setEditFormData({
+      title: todo.title,
+      description: todo.description,
+      priority: todo.priority,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditFormData({ title: "", description: "", priority: "medium" });
+  };
+
+  const handleUpdateTodo = async (id: string) => {
+    if (!editFormData.title.trim()) {
+      alert("Please enter a title");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/update-todo/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editFormData),
+      });
+
+      const data = await response.json();
+      setTodoList(data?.todos || []);
+      setEditingId(null);
+      setEditFormData({ title: "", description: "", priority: "medium" });
     } catch (err) {
       console.log(err);
     }
@@ -182,37 +238,143 @@ function App() {
                   padding: "15px",
                   marginBottom: "10px",
                   borderRadius: "5px",
-                  backgroundColor: todo.completed ? "#f0f0f0" : "#fff",
+                  backgroundColor:
+                    editingId === todo.id
+                      ? "#fffde7"
+                      : todo.completed
+                      ? "#f0f0f0"
+                      : "#fff",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  flexDirection: "column",
+                  gap: "10px",
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: "0 0 5px 0" }}>{todo.title}</h3>
-                  <p style={{ margin: "5px 0", color: "#666" }}>
-                    {todo.description}
-                  </p>
-                  <small>
-                    Priority: <strong>{todo.priority}</strong> | Status:{" "}
-                    <strong>{todo.completed ? "✅ Done" : "⏳ Pending"}</strong>
-                  </small>
-                </div>
-                <button
-                  onClick={() => handleDeleteTodo(todo.id)}
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: "#f44336",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    marginLeft: "10px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Delete
-                </button>
+                {editingId === todo.id ? (
+                  // Edit Mode
+                  <>
+                    <input
+                      type="text"
+                      name="title"
+                      value={editFormData.title}
+                      onChange={handleEditInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <textarea
+                      name="description"
+                      value={editFormData.description}
+                      onChange={handleEditInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                        minHeight: "80px",
+                      }}
+                    />
+                    <select
+                      name="priority"
+                      value={editFormData.priority}
+                      onChange={handleEditInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        onClick={() => handleUpdateTodo(todo.id)}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          backgroundColor: "#4CAF50",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          backgroundColor: "#757575",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  // View Mode
+                  <>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: "0 0 5px 0" }}>{todo.title}</h3>
+                      <p style={{ margin: "5px 0", color: "#666" }}>
+                        {todo.description}
+                      </p>
+                      <small>
+                        Priority: <strong>{todo.priority}</strong> | Status:{" "}
+                        <strong>
+                          {todo.completed ? "✅ Done" : "⏳ Pending"}
+                        </strong>
+                      </small>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        onClick={() => handleStartEdit(todo)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          backgroundColor: "#2196F3",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTodo(todo.id)}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          backgroundColor: "#f44336",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>

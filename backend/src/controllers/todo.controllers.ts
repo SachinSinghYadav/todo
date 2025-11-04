@@ -40,3 +40,16 @@ export const deleteTodo = async (
     next(err);
   }
 };
+
+export const updateTodo = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const todoList = await todoServices.updateTodo(req.params, req.body);
+    res.status(200).json(todoList);
+  } catch (err) {
+    next(err);
+  }
+};

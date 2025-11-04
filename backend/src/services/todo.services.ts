@@ -39,3 +39,20 @@ export const deleteTodo = async ({ id }: { id: string }) => {
 
   return { todos };
 };
+
+export const updateTodo = async (
+  { id }: { id: string },
+  { title, description, completed, priority }: CreateTodoParams
+) => {
+  await prisma.todo.update({
+    where: { id },
+    data: {
+      title,
+      description,
+      priority,
+    },
+  });
+  const todos = await prisma.todo.findMany();
+
+  return { todos };
+};
